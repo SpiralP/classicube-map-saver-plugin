@@ -1,0 +1,12 @@
+[package]
+name = "classicube-map-saver-plugin"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+classicube-helpers = { git = "https://github.com/SpiralP/rust-classicube-helpers.git", branch = "main" }
+classicube-sys = "=4.1.2"
