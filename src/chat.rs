@@ -1,15 +1,11 @@
 use std::cell::{Cell, RefCell};
 
+use anyhow::{Result, bail};
 use classicube_helpers::{
     events::chat::{ChatReceivedEvent, ChatReceivedEventHandler},
     tab_list::remove_color,
-    tick::TickEventHandler,
 };
-use classicube_sys::*;
-
-thread_local!(
-    static TICK_HANDLER: RefCell<Option<TickEventHandler>> = Default::default();
-);
+use classicube_sys::{MsgType_MSG_TYPE_NORMAL, OwnedString, Server, cc_result, cc_string};
 
 thread_local!(
     static CHAT_HANDLER: RefCell<Option<ChatReceivedEventHandler>> = Default::default();
@@ -21,14 +17,6 @@ thread_local!(
 
 thread_local!(
     static MAP_NAME_TRIGGER: RefCell<Option<String>> = const { RefCell::new(None) };
-);
-
-thread_local!(
-    static MAP_LOADED: Cell<bool> = const { Cell::new(false) };
-);
-
-thread_local!(
-    static TEXTURE_PACK_DOWNLOADED: Cell<bool> = const { Cell::new(false) };
 );
 
 pub fn init() {
@@ -48,65 +36,39 @@ pub fn init() {
 
                 if *message_type == MsgType_MSG_TYPE_NORMAL {
                     if let Some(map_name) = message.strip_prefix("SpiralP went to ") {
-                        MAP_NAME_TRIGGER.set(Some(map_name.to_string()));
-                    }
-                } else if *message_type == MsgType_MSG_TYPE_EXTRASTATUS_1 {
-                    if message.starts_with("Retrieving texture pack")
-                        || message.starts_with("Downloading texture pack")
-                    {
-                        TEXTURE_PACK_DOWNLOADED.set(false);
-                    } else if message.is_empty() {
-                        TEXTURE_PACK_DOWNLOADED.set(true);
+                        println!("saving map: {:?}", map_name);
+                        save_map(map_name)
+                            .unwrap_or_else(|err| eprintln!("Failed to save map: {}", err));
                     }
                 }
-
-                println!("!!! {:?} {:?}", message_type, message);
             },
         );
 
         *cell.borrow_mut() = Some(chat_received_event_handler);
     });
-
-    TICK_HANDLER.with(|cell| {
-        let mut tick_event_handler = TickEventHandler::new();
-
-        tick_event_handler.on(move |_event| {
-            MAP_NAME_TRIGGER.with_borrow_mut(|map_name_trigger| {
-                if let Some(map_name) = map_name_trigger {
-                    if MAP_LOADED.get() && TEXTURE_PACK_DOWNLOADED.get() {
-                        let text = OwnedString::new(format!("saving {:?}", map_name));
-                        unsafe {
-                            Chat_Add(text.as_cc_string());
-                        }
-                        *map_name_trigger = None;
-                    }
-                }
-            });
-        });
-
-        *cell.borrow_mut() = Some(tick_event_handler);
-    });
 }
 
 pub fn free() {
-    TICK_HANDLER.with(|cell| drop(cell.borrow_mut().take()));
     CHAT_HANDLER.with(|cell| drop(cell.borrow_mut().take()));
 }
 
-pub fn reset() {
-    MAP_NAME_TRIGGER.take();
-    MAP_LOADED.set(false);
-    TEXTURE_PACK_DOWNLOADED.set(false);
+unsafe extern "C" {
+    fn SaveLevelScreen_SaveMap(path: *const cc_string) -> cc_result;
 }
 
-pub fn on_new_map() {
-    MAP_NAME_TRIGGER.take();
-    MAP_LOADED.set(false);
-    TEXTURE_PACK_DOWNLOADED.set(false);
-}
+fn save_map(name: &str) -> Result<()> {
+    if !name.is_ascii()
+        || !name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '_')
+    {
+        bail!("Invalid map name: {}", name);
+    }
 
-pub fn on_new_map_loaded() {
-    MAP_NAME_TRIGGER.take();
-    MAP_LOADED.set(true);
-    TEXTURE_PACK_DOWNLOADED.set(false);
+    let path = OwnedString::new(format!("maps/{}.cw", name));
+    if unsafe { SaveLevelScreen_SaveMap(path.as_cc_string()) } != 0 {
+        bail!("SaveLevelScreen_SaveMap failed");
+    }
+
+    Ok(())
 }

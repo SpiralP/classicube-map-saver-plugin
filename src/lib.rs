@@ -16,17 +16,14 @@ extern "C" fn free() {
 
 extern "C" fn reset() {
     println!("!!! reset");
-    chat::reset();
 }
 
 extern "C" fn on_new_map() {
     println!("!!! on_new_map");
-    chat::on_new_map();
 }
 
 extern "C" fn on_new_map_loaded() {
     println!("!!! on_new_map_loaded");
-    chat::on_new_map_loaded();
 }
 
 #[allow(non_upper_case_globals)]
