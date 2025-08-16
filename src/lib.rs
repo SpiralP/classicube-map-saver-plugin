@@ -4,26 +4,28 @@ use std::{os::raw::c_int, ptr};
 
 use classicube_sys::*;
 
+const PLUGIN_NAME: &str = env!("CARGO_PKG_NAME");
+
 extern "C" fn init() {
-    println!("!!! init");
+    println!("{PLUGIN_NAME} init");
     chat::init();
 }
 
 extern "C" fn free() {
-    println!("!!! free");
+    println!("{PLUGIN_NAME} free");
     chat::free();
 }
 
 extern "C" fn reset() {
-    println!("!!! reset");
+    println!("{PLUGIN_NAME} reset");
 }
 
 extern "C" fn on_new_map() {
-    println!("!!! on_new_map");
+    println!("{PLUGIN_NAME} on_new_map");
 }
 
 extern "C" fn on_new_map_loaded() {
-    println!("!!! on_new_map_loaded");
+    println!("{PLUGIN_NAME} on_new_map_loaded");
 }
 
 #[allow(non_upper_case_globals)]
