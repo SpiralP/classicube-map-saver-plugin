@@ -10,4 +10,4 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "=1.0.102"
 classicube-helpers = { git = "https://github.com/SpiralP/rust-classicube-helpers.git", branch = "main" }
-classicube-sys = "=5.0.0"
+classicube-sys = "=5.1.0"
